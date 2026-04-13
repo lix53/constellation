@@ -220,6 +220,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
     <button class="on" onclick="showPanel('book')">✦ 星座图鉴</button>
     <button onclick="showPanel('fortune')">✦ 运势查询</button>
     <button onclick="showPanel('match')">✦ 配对指数</button>
+    <button onclick="showPanel('baby')">✦ 备孕规划</button>
   </nav>
 
   <!-- ===== 星座书 ===== -->
@@ -311,6 +312,22 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       <div id="matchResult"></div>
     </div>
   </div>
+
+  <!-- ===== 备孕规划 ===== -->
+  <div class="panel" id="panelBaby">
+    <div class="fortune-box">
+      <div style="text-align:center;margin-bottom:20px">
+        <p style="font-family:'Orbitron',sans-serif;font-size:.8rem;color:var(--gold);letter-spacing:3px;margin-bottom:8px">✦ BABY ZODIAC PLANNER ✦</p>
+        <p style="font-size:.88rem;color:rgba(200,216,240,.6);line-height:1.8">选择你心仪的星座，计算最佳备孕时间窗口，<br>让星辰为你的小生命选定最美好的命运起点。</p>
+      </div>
+      <div class="input-group">
+        <select id="babyZodiac" style="font-family:'Noto Serif SC',serif;font-size:.88rem;padding:10px 16px;background:rgba(10,22,40,.8);border:1px solid rgba(0,238,255,.15);color:var(--text);border-radius:3px;outline:none;flex:1;min-width:160px">
+        </select>
+        <button class="btn-main" onclick="queryBabyPlan()">PLAN</button>
+      </div>
+      <div id="babyResult"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -384,7 +401,7 @@ const SX=["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪
 function showPanel(id){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
   document.getElementById('panel'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('show');
-  document.querySelectorAll('.nav button').forEach((b,i)=>b.classList.toggle('on',['book','fortune','match'][i]===id));
+  document.querySelectorAll('.nav button').forEach((b,i)=>b.classList.toggle('on',['book','fortune','match','baby'][i]===id));
 }
 
 // ========== 星座书 ==========
@@ -960,6 +977,124 @@ function mcPrev(){if(mcPage>0){mcPage--;mcRender()}}
 buildCover();
 buildMobile();
 initMatchSelects();
+initBabySelect();
+
+function initBabySelect(){
+  const sel=document.getElementById('babyZodiac');
+  Z.forEach((z,i)=>{sel.innerHTML+=`<option value="${i}">${z.sym} ${z.name}（${z.date}）</option>`});
+}
+
+// ========== 备孕规划 ==========
+function queryBabyPlan(){
+  const zi=+document.getElementById('babyZodiac').value;
+  const z=Z[zi];
+  const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[z.elem];
+
+  // 根据星座日期范围反推受孕时间（怀孕约40周=280天≈9个月10天）
+  const dateRanges=[
+    {s:[3,21],e:[4,19]}, // 白羊
+    {s:[4,20],e:[5,20]}, // 金牛
+    {s:[5,21],e:[6,21]}, // 双子
+    {s:[6,22],e:[7,22]}, // 巨蟹
+    {s:[7,23],e:[8,22]}, // 狮子
+    {s:[8,23],e:[9,22]}, // 处女
+    {s:[9,23],e:[10,23]}, // 天秤
+    {s:[10,24],e:[11,22]},// 天蝎
+    {s:[11,23],e:[12,21]},// 射手
+    {s:[12,22],e:[1,19]}, // 摩羯
+    {s:[1,20],e:[2,18]},  // 水瓶
+    {s:[2,19],e:[3,20]}   // 双鱼
+  ];
+  const range=dateRanges[zi];
+
+  function calcConception(birthM,birthD){
+    // 往前推280天（约9个月10天）
+    let m=birthM-9, d=birthD-10;
+    if(d<=0){m--;d+=30}
+    if(m<=0)m+=12;
+    return {m,d}
+  }
+  const cStart=calcConception(range.s[0],range.s[1]);
+  const cEnd=calcConception(range.e[0],range.e[1]);
+
+  const monthNames=['','一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+
+  // 最佳备孕窗口（受孕窗口前1个月开始准备）
+  let prepM=cStart.m-1;if(prepM<=0)prepM+=12;
+
+  const seed=zi*77+13;
+  const r=seededRand(seed);
+
+  const elemTips={
+    fire:'火象星座的宝宝天生精力旺盛，备孕期间建议妈妈多补充富含铁和蛋白质的食物，保持积极运动的习惯。爸爸也要保持充沛的体力状态。',
+    earth:'土象星座的宝宝需要安稳的孕育环境。备孕期间特别注重规律作息和均衡营养，避免频繁更换生活环境，让身体在稳定的节奏中进入最佳状态。',
+    air:'风象星座的宝宝聪慧灵动，备孕期间建议父母多阅读、听音乐、保持愉悦和丰富的精神生活。放松心情比什么都重要，过度焦虑反而不利于受孕。',
+    water:'水象星座的宝宝情感丰富敏感。备孕期间建议在温馨和谐的家庭氛围中进行，保持充足的水分摄入，多亲近自然水域，散步或冥想有助于调节身心状态。'
+  };
+
+  const seasonMap={
+    1:'冬季',2:'冬季',3:'春季',4:'春季',5:'春季',6:'夏季',
+    7:'夏季',8:'夏季',9:'秋季',10:'秋季',11:'秋季',12:'冬季'
+  };
+  const season=seasonMap[cStart.m];
+  const seasonTips={
+    '春季':'春季受孕气候温和，万物复苏，是非常理想的时段。注意春季花粉过敏和感冒预防，多吃新鲜蔬果。',
+    '夏季':'夏季受孕需注意防暑降温，避免高温环境影响精子质量。建议在早晚凉爽时段安排作息，多补充水分和维生素C。',
+    '秋季':'秋季是公认的最佳受孕季节之一，气候宜人、果蔬丰富。抓住这个黄金时段，身心状态往往最佳。',
+    '冬季':'冬季受孕要注意保暖，室内通风换气。适度运动避免久坐，可适当增加温补类食材如红枣、桂圆等。'
+  };
+
+  const tips=[
+    `${r()>.5?'建议提前3个月开始补充叶酸，这对宝宝的神经管发育至关重要。':'从备孕开始就戒烟戒酒，保持健康的生活方式。'}`,
+    `${r()>.5?'备孕期间保持每周3-4次适度运动，如散步、瑜伽或游泳，有助于调节内分泌。':'保证每天7-8小时高质量睡眠，避免熬夜，让身体在最佳生物钟下运作。'}`,
+    `${r()>.5?'减少咖啡因摄入（每天不超过200mg），过多咖啡因可能影响受孕概率。':'保持体重在健康范围内，BMI 18.5-24.9 是最理想的受孕体重区间。'}`,
+    `${r()>.5?'建议使用排卵试纸或基础体温法精确追踪排卵期，在排卵日前后2天内同房概率最高。':'双方可以做一次全面的孕前体检，确保身体状况良好，排除潜在的健康隐患。'}`,
+    `${r()>.5?'保持心情愉悦是最重要的，过度紧张焦虑反而会影响排卵和受孕。享受过程，相信缘分。':'备孕不仅是妈妈的事，爸爸也要在备孕前3个月内避免高温环境（如桑拿、温泉），保证精子质量。'}`
+  ];
+
+  const el=document.getElementById('babyResult');
+  el.innerHTML=`
+  <div class="result-card" style="margin-top:20px">
+    <div class="rc-head">
+      <span class="rc-sym">${z.sym}</span>
+      <div class="rc-info">
+        <h3>${z.name} 宝宝</h3>
+        <p>出生日期范围：${range.s[0]}月${range.s[1]}日 - ${range.e[0]>12?range.e[0]-12:range.e[0]}月${range.e[1]}日</p>
+      </div>
+    </div>
+
+    <div class="fortune-section">
+      <h4>▸ 最佳受孕时间窗口</h4>
+      <p style="font-size:1.05rem;color:var(--gold);margin-bottom:4px">${monthNames[cStart.m]}${cStart.d}日 — ${monthNames[cEnd.m]}${cEnd.d}日</p>
+      <p>在此时间段内成功受孕，宝宝大概率会在${z.name}对应的${range.s[0]}月${range.s[1]}日至${range.e[0]}月${range.e[1]}日之间出生。</p>
+    </div>
+
+    <div class="fortune-section">
+      <h4>▸ 建议开始备孕时间</h4>
+      <p>建议从 <span style="color:var(--cyan)">${monthNames[prepM]}</span> 开始进入备孕状态，给身体充足的调理时间。受孕窗口处于<span style="color:var(--cyan)">${season}</span>。</p>
+    </div>
+
+    <div class="fortune-section">
+      <h4>▸ 季节注意事项</h4>
+      <p>${seasonTips[season]}</p>
+    </div>
+
+    <div class="fortune-section">
+      <h4>▸ ${z.elemCn}宝宝专属建议</h4>
+      <p>${elemTips[z.elem]}</p>
+    </div>
+
+    <div class="fortune-section">
+      <h4>▸ 备孕实用贴士</h4>
+      ${tips.map((t,i)=>`<p style="margin-bottom:8px"><span style="color:var(--cyan);font-family:'Orbitron',sans-serif;font-size:.7rem">0${i+1}</span>　${t}</p>`).join('')}
+    </div>
+
+    <div class="fortune-section">
+      <h4>▸ 你的${z.name}宝宝将会...</h4>
+      <p>在${z.ruler}的守护下，天生具有${z.trait[0]}与${z.trait[1]}的特质。${z.desc} 作为父母，了解这些特质将帮助你更好地引导和陪伴孩子成长。</p>
+    </div>
+  </div>`;
+}
 </script>
 </body>
 </html>
