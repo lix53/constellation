@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星际命典 - Astral Codex</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Serif+SC:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--cyan:#0ef;--blue:#1a6fff;--purple:#a855f7;--gold:#f0c040;--bg:#020818;--card:#0a1628;--text:#c8d8f0}
+html{scroll-behavior:smooth}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Noto Serif SC',serif;overflow-x:hidden}
+
+/* ===== 星空背景 ===== */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(10,60,180,.12),transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(168,85,247,.08),transparent 50%);z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px}
+
+/* ===== 标题 ===== */
+.hdr{text-align:center;padding:40px 20px 10px}
+.hdr h1{font-family:'Orbitron',sans-serif;font-size:clamp(1.8rem,4.5vw,3rem);font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple),var(--gold));background-size:300% 300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hShift 8s ease infinite;letter-spacing:4px}
+@keyframes hShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hdr .sub{font-family:'Orbitron',sans-serif;font-size:.72rem;color:var(--cyan);letter-spacing:8px;opacity:.5;margin-top:6px}
+.divider{width:200px;height:1px;margin:18px auto;background:linear-gradient(90deg,transparent,var(--cyan),var(--blue),var(--cyan),transparent)}
+
+/* ===== 导航标签 ===== */
+.nav{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-bottom:30px}
+.nav button{font-family:'Orbitron',sans-serif;font-size:.72rem;padding:9px 22px;background:rgba(10,22,40,.7);border:1px solid rgba(0,238,255,.15);color:var(--cyan);cursor:pointer;border-radius:3px;transition:all .3s;letter-spacing:2px;backdrop-filter:blur(6px)}
+.nav button:hover{border-color:rgba(0,238,255,.4);box-shadow:0 0 18px rgba(0,238,255,.1)}
+.nav button.on{background:rgba(0,238,255,.08);border-color:var(--cyan);box-shadow:0 0 20px rgba(0,238,255,.15),inset 0 0 20px rgba(0,238,255,.04)}
+
+/* ===== 面板通用 ===== */
+.panel{display:none;animation:fadeIn .5s ease}
+.panel.show{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== 星座书（翻书效果）===== */
+.book-wrap{display:flex;justify-content:center;padding:10px 0;perspective:2200px}
+.book{position:relative;transform-style:preserve-3d;transition:width .6s ease}
+.book.closed{width:440px;height:640px}
+.book.opened{width:920px;height:640px}
+
+/* 封面 - 单页合拢 */
+.book-cover{position:absolute;inset:0;background:linear-gradient(145deg,#0d1e38,#08132a 50%,#0a1830);border:1px solid rgba(0,238,255,.15);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;z-index:70;transition:opacity .5s,transform .5s;overflow:hidden;padding:36px 30px}
+.book-cover::before{content:'';position:absolute;inset:8px;border:1px solid rgba(0,238,255,.08);border-radius:7px;pointer-events:none}
+.book-cover::after{content:'';position:absolute;inset:16px;border:1px solid rgba(168,85,247,.06);border-radius:5px;pointer-events:none}
+.book-cover.hidden{opacity:0;pointer-events:none;transform:scale(.95)}
+.cover-title{font-family:'Orbitron',sans-serif;font-size:1.8rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:6px;margin-bottom:8px}
+.cover-sub{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--cyan);letter-spacing:6px;opacity:.45;margin-bottom:24px}
+.cover-symbols{font-size:2rem;letter-spacing:8px;margin-bottom:24px;opacity:.35;color:var(--cyan);white-space:nowrap}
+.cover-grid-wrap{width:100%;max-width:320px}
+.cover-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.cover-grid .zitem{text-align:center;padding:8px 2px;border:1px solid rgba(0,238,255,.06);border-radius:4px;cursor:pointer;transition:all .3s;background:rgba(0,238,255,.01)}
+.cover-grid .zitem:hover{border-color:rgba(0,238,255,.35);background:rgba(0,238,255,.07);box-shadow:0 0 14px rgba(0,238,255,.1);transform:translateY(-2px)}
+.cover-grid .zitem .sym{font-size:1.3rem;display:block}
+.cover-grid .zitem .zname{font-size:.6rem;color:var(--cyan);letter-spacing:1px;margin-top:2px;display:block;white-space:nowrap}
+.cover-grid .zitem .zdate{font-size:.5rem;color:rgba(200,216,240,.3);margin-top:1px;display:block;white-space:nowrap}
+.cover-hint{font-size:.75rem;color:var(--cyan);margin-top:20px;letter-spacing:3px;animation:coverPulse 2.5s ease infinite}
+@keyframes coverPulse{0%,100%{opacity:.45}50%{opacity:.85}}
+
+/* 翻页内容区 */
+.book-inner{position:absolute;inset:0;display:none}
+.book-left{position:absolute;left:0;width:50%;height:100%;background:linear-gradient(225deg,#0c1a30,#0a1424);border:1px solid rgba(0,238,255,.1);border-right:none;border-radius:8px 0 0 8px;padding:34px 30px;overflow:hidden}
+.book-spine{position:absolute;left:50%;top:0;width:2px;height:100%;background:linear-gradient(180deg,transparent,var(--cyan),var(--blue),var(--cyan),transparent);opacity:.3;z-index:50}
+.page{position:absolute;width:50%;height:100%;right:0;transform-origin:left center;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.645,.045,.355,1);z-index:1;cursor:pointer}
+.page.flipped{transform:rotateY(-180deg);z-index:0}
+.page-front,.page-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;padding:34px 30px;overflow:hidden}
+.page-front{background:linear-gradient(135deg,#0c1a30,#0a1424);border:1px solid rgba(0,238,255,.1);border-left:none;border-radius:0 8px 8px 0}
+.page-back{transform:rotateY(180deg);background:linear-gradient(225deg,#0c1a30,#0a1424);border:1px solid rgba(0,238,255,.1);border-right:none;border-radius:8px 0 0 8px}
+.page-title{font-family:'Orbitron',sans-serif;font-size:1.05rem;color:var(--cyan);margin-bottom:16px;letter-spacing:2px;border-bottom:1px solid rgba(0,238,255,.1);padding-bottom:10px}
+.page-content{font-size:.95rem;line-height:2;color:rgba(200,216,240,.8)}
+.page-content b{color:var(--gold);font-size:1rem}
+.page-content .tag{display:inline-block;background:rgba(0,238,255,.06);border:1px solid rgba(0,238,255,.15);padding:3px 12px;border-radius:2px;font-size:.78rem;color:var(--cyan);margin:3px 3px;letter-spacing:1px}
+.book-nav{display:flex;justify-content:center;gap:16px;margin-top:16px}
+.book-nav button{font-family:'Orbitron',sans-serif;font-size:.68rem;padding:8px 22px;background:rgba(10,22,40,.6);border:1px solid rgba(0,238,255,.15);color:var(--cyan);cursor:pointer;border-radius:2px;transition:all .3s;letter-spacing:2px}
+.book-nav button:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,238,255,.1)}
+.book-nav .pg-info{font-family:'Orbitron',sans-serif;font-size:.68rem;color:rgba(0,238,255,.4);align-self:center;letter-spacing:2px}
+
+/* 元素分类 */
+.elem-section{margin:10px 0}
+.elem-title{font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:3px;margin-bottom:8px;padding:4px 10px;border-radius:2px;display:inline-block}
+.elem-fire{color:#ff6b35;border-bottom:1px solid rgba(255,107,53,.3)}
+.elem-earth{color:#8b9a46;border-bottom:1px solid rgba(139,154,70,.3)}
+.elem-air{color:#5cc8ff;border-bottom:1px solid rgba(92,200,255,.3)}
+.elem-water{color:#7c6cf0;border-bottom:1px solid rgba(124,108,240,.3)}
+
+/* 隐藏滚动条 */
+.page-front::-webkit-scrollbar,.page-back::-webkit-scrollbar,.book-left::-webkit-scrollbar{display:none}
+.page-front,.page-back,.book-left{scrollbar-width:none;-ms-overflow-style:none}
+.zodiac-grid .zitem .zname{font-size:.75rem;color:var(--cyan);letter-spacing:1px}
+.zodiac-grid .zitem .zdate{font-size:.62rem;color:rgba(200,216,240,.4);margin-top:2px}
+
+/* 元素分类 */
+.elem-section{margin:12px 0}
+.elem-title{font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:3px;margin-bottom:8px;padding:4px 10px;border-radius:2px;display:inline-block}
+.elem-fire{color:#ff6b35;border-bottom:1px solid rgba(255,107,53,.3)}
+.elem-earth{color:#8b9a46;border-bottom:1px solid rgba(139,154,70,.3)}
+.elem-air{color:#5cc8ff;border-bottom:1px solid rgba(92,200,255,.3)}
+.elem-water{color:#7c6cf0;border-bottom:1px solid rgba(124,108,240,.3)}
+
+/* ===== 运势查询面板 ===== */
+.fortune-box{max-width:600px;margin:0 auto}
+.input-group{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;justify-content:center}
+.input-group input,.input-group select{font-family:'Noto Serif SC',serif;font-size:.88rem;padding:10px 16px;background:rgba(10,22,40,.8);border:1px solid rgba(0,238,255,.15);color:var(--text);border-radius:3px;outline:none;transition:border-color .3s;flex:1;min-width:100px;-moz-appearance:textfield}
+.input-group input::-webkit-outer-spin-button,.input-group input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.input-group input:focus,.input-group select:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,238,255,.1)}
+.input-group select option{background:#0a1628}
+.btn-main{font-family:'Orbitron',sans-serif;font-size:.78rem;padding:10px 30px;background:linear-gradient(135deg,rgba(0,238,255,.1),rgba(26,111,255,.1));border:1px solid var(--cyan);color:var(--cyan);cursor:pointer;border-radius:3px;letter-spacing:2px;transition:all .3s;min-width:auto;flex:none}
+.btn-main:hover{background:linear-gradient(135deg,rgba(0,238,255,.18),rgba(26,111,255,.15));box-shadow:0 0 25px rgba(0,238,255,.15);transform:translateY(-1px)}
+
+/* 运势结果卡 */
+.result-card{background:rgba(10,22,40,.7);border:1px solid rgba(0,238,255,.12);border-radius:8px;padding:24px;backdrop-filter:blur(8px);position:relative;overflow:hidden;animation:fadeIn .6s ease}
+.result-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),var(--blue),var(--purple),transparent)}
+.result-card .rc-head{display:flex;align-items:center;gap:16px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(0,238,255,.08)}
+.result-card .rc-sym{font-size:2.8rem;line-height:1;filter:drop-shadow(0 0 12px rgba(0,238,255,.3))}
+.result-card .rc-info h3{font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--cyan);letter-spacing:2px}
+.result-card .rc-info p{font-size:.78rem;color:rgba(200,216,240,.5);margin-top:3px}
+.meter{display:flex;align-items:center;gap:8px;margin:6px 0}
+.meter-label{font-size:.75rem;color:rgba(200,216,240,.6);width:70px;text-align:right;flex-shrink:0}
+.meter-bar{flex:1;height:6px;background:rgba(0,238,255,.06);border-radius:3px;overflow:hidden}
+.meter-fill{height:100%;border-radius:3px;transition:width 1s ease;background:linear-gradient(90deg,var(--cyan),var(--blue))}
+.meter-fill.high{background:linear-gradient(90deg,var(--gold),#f08030)}
+.meter-val{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--cyan);width:30px}
+.fortune-section{margin-top:16px}
+.fortune-section h4{font-family:'Orbitron',sans-serif;font-size:.72rem;color:var(--purple);letter-spacing:2px;margin-bottom:8px}
+.fortune-section p{font-size:.85rem;line-height:1.9;color:rgba(200,216,240,.75);padding-left:12px;border-left:2px solid rgba(168,85,247,.15)}
+
+/* ===== 配对面板 ===== */
+.match-box{max-width:650px;margin:0 auto}
+.match-row{display:flex;gap:12px;align-items:end;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.match-row select{font-family:'Noto Serif SC',serif;font-size:.88rem;padding:10px 16px;background:rgba(10,22,40,.8);border:1px solid rgba(0,238,255,.15);color:var(--text);border-radius:3px;outline:none;transition:border-color .3s;width:160px}
+.match-row select:focus{border-color:var(--cyan)}
+#matchCombo select{font-family:'Noto Serif SC',serif;font-size:.85rem;padding:9px 14px;background:rgba(10,22,40,.8);border:1px solid rgba(0,238,255,.15);color:var(--text);border-radius:3px;outline:none;transition:border-color .3s;display:block}
+#matchCombo select:focus{border-color:var(--cyan)}
+#matchCombo select option{background:#0a1628}
+.match-row select option{background:#0a1628}
+.match-vs{font-family:'Orbitron',sans-serif;font-size:.9rem;color:var(--purple);align-self:center}
+.match-result{animation:fadeIn .6s ease}
+.match-pair{display:flex;justify-content:center;align-items:center;gap:30px;margin-bottom:20px}
+.match-pair .mp-item{text-align:center}
+.match-pair .mp-sym{font-size:2.6rem;display:block;filter:drop-shadow(0 0 10px rgba(0,238,255,.25))}
+.match-pair .mp-name{font-size:.82rem;color:var(--cyan);margin-top:4px;letter-spacing:1px}
+.match-heart{font-size:1.8rem;color:var(--purple);animation:heartBeat 1.5s ease infinite}
+@keyframes heartBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+.match-score{text-align:center;margin:14px 0}
+.match-score .big{font-family:'Orbitron',sans-serif;font-size:2.5rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.match-score .lbl{font-size:.72rem;color:rgba(200,216,240,.4);letter-spacing:3px;margin-top:2px}
+.match-detail{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.match-detail .md-card{background:rgba(0,238,255,.03);border:1px solid rgba(0,238,255,.08);border-radius:4px;padding:14px;transition:border-color .3s}
+.match-detail .md-card:hover{border-color:rgba(0,238,255,.2)}
+.match-detail .md-card h5{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--cyan);letter-spacing:2px;margin-bottom:6px}
+.match-detail .md-card p{font-size:.8rem;line-height:1.7;color:rgba(200,216,240,.65)}
+
+/* 属相配对切换 */
+.match-tabs{display:flex;justify-content:center;gap:6px;margin-bottom:16px}
+.match-tabs button{font-size:.78rem;padding:6px 18px;background:transparent;border:1px solid rgba(168,85,247,.15);color:rgba(168,85,247,.6);cursor:pointer;border-radius:2px;transition:all .3s;font-family:'Noto Serif SC',serif}
+.match-tabs button.on{background:rgba(168,85,247,.08);border-color:var(--purple);color:var(--purple)}
+
+/* 页面滚动条 */
+.page-front::-webkit-scrollbar,.page-back::-webkit-scrollbar,.book-left::-webkit-scrollbar{width:3px}
+.page-front::-webkit-scrollbar-thumb,.page-back::-webkit-scrollbar-thumb,.book-left::-webkit-scrollbar-thumb{background:rgba(0,238,255,.15);border-radius:3px}
+
+@media(max-width:960px){
+  .book.closed{width:380px;height:560px}
+  .book.opened{width:760px;height:560px}
+  .cover-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:780px){
+  .book.opened{width:96vw;height:520px}
+  .page-front,.page-back,.book-left{padding:22px 18px}
+}
+@media(max-width:520px){
+  .book.closed{width:90vw;height:500px}
+  .book.opened{width:96vw;height:440px}
+  .page-content{font-size:.85rem;line-height:1.85}
+  .match-detail{grid-template-columns:1fr}
+  .cover-grid{grid-template-columns:repeat(3,1fr)}
+  .cover-title{font-size:1.3rem}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="wrap">
+  <header class="hdr">
+    <h1>ASTRAL CODEX</h1>
+    <p class="sub">星 际 命 典</p>
+  </header>
+  <div class="divider"></div>
+  <nav class="nav">
+    <button class="on" onclick="showPanel('book')">✦ 星座图鉴</button>
+    <button onclick="showPanel('fortune')">✦ 运势查询</button>
+    <button onclick="showPanel('match')">✦ 配对指数</button>
+  </nav>
+
+  <!-- ===== 星座书 ===== -->
+  <div class="panel show" id="panelBook">
+    <div class="book-wrap">
+      <div class="book closed" id="book">
+        <div class="book-cover" id="bookCover"></div>
+        <div class="book-inner" id="bookInner">
+          <div class="book-left" id="bookLeft"></div>
+          <div class="book-spine"></div>
+        </div>
+      </div>
+    </div>
+    <div class="book-nav" id="bookNav" style="display:none">
+      <button onclick="backToCover()">◁ 总览</button>
+      <button onclick="bookPrev()">◁ PREV</button>
+      <span class="pg-info" id="pgInfo">1 / 12</span>
+      <button onclick="bookNext()">NEXT ▷</button>
+    </div>
+  </div>
+
+  <!-- ===== 运势查询 ===== -->
+  <div class="panel" id="panelFortune">
+    <div class="fortune-box">
+      <div style="text-align:center;margin-bottom:20px">
+        <p style="font-family:'Orbitron',sans-serif;font-size:.8rem;color:var(--cyan);letter-spacing:3px;margin-bottom:8px">✦ PERSONAL HOROSCOPE ✦</p>
+        <p style="font-size:.88rem;color:rgba(200,216,240,.6);line-height:1.8">输入你的出生日期，星际命典将为你解析专属星座档案、<br>性格密码，以及近期与长期的命运走向。</p>
+      </div>
+      <div class="input-group">
+        <input type="number" id="fYear" placeholder="出生年份" min="1940" max="2026" value="2000">
+        <input type="number" id="fMonth" placeholder="月" min="1" max="12" value="6">
+        <input type="number" id="fDay" placeholder="日" min="1" max="31" value="15">
+        <button class="btn-main" onclick="queryFortune()">ANALYZE</button>
+      </div>
+      <div id="fortuneResult"></div>
+    </div>
+  </div>
+
+  <!-- ===== 配对指数 ===== -->
+  <div class="panel" id="panelMatch">
+    <div class="match-box">
+      <div style="text-align:center;margin-bottom:20px">
+        <p style="font-family:'Orbitron',sans-serif;font-size:.8rem;color:var(--purple);letter-spacing:3px;margin-bottom:8px">✦ COMPATIBILITY SCAN ✦</p>
+        <p style="font-size:.88rem;color:rgba(200,216,240,.6);line-height:1.8">探测两个星座或属相之间的宇宙共振频率，<br>解锁你们在爱情、友谊、事业上的契合密码。</p>
+      </div>
+      <div class="match-tabs">
+        <button class="on" onclick="switchMatchType('zodiac',this)">星座配对</button>
+        <button onclick="switchMatchType('shengxiao',this)">属相配对</button>
+        <button onclick="switchMatchType('combo',this)">星座+属相</button>
+      </div>
+      <div id="matchZodiac">
+        <p style="text-align:center;font-size:.78rem;color:rgba(200,216,240,.4);margin-bottom:12px">选择两个星座，查看基于四元素相性的深度配对分析</p>
+        <div class="match-row">
+          <select id="matchA"></select>
+          <span class="match-vs">✦</span>
+          <select id="matchB"></select>
+          <button class="btn-main" onclick="queryMatch()">MATCH</button>
+        </div>
+      </div>
+      <div id="matchShengxiao" style="display:none">
+        <p style="text-align:center;font-size:.78rem;color:rgba(200,216,240,.4);margin-bottom:12px">选择两个生肖，查看三合六合关系与相性指数</p>
+        <div class="match-row">
+          <select id="sxA"></select>
+          <span class="match-vs">✦</span>
+          <select id="sxB"></select>
+          <button class="btn-main" onclick="querySxMatch()">MATCH</button>
+        </div>
+      </div>
+      <div id="matchCombo" style="display:none">
+        <p style="text-align:center;font-size:.78rem;color:rgba(200,216,240,.4);margin-bottom:12px">同时选择双方的星座与属相，获取中西合璧的综合配对报告</p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
+          <div style="text-align:center">
+            <p style="font-size:.68rem;color:var(--cyan);letter-spacing:2px;margin-bottom:6px">— 她/他 —</p>
+            <select id="comboZA" style="width:140px;margin-bottom:6px"></select>
+            <select id="comboSA" style="width:140px"></select>
+          </div>
+          <span class="match-vs" style="align-self:center;margin-top:12px">✦</span>
+          <div style="text-align:center">
+            <p style="font-size:.68rem;color:var(--cyan);letter-spacing:2px;margin-bottom:6px">— 我 —</p>
+            <select id="comboZB" style="width:140px;margin-bottom:6px"></select>
+            <select id="comboSB" style="width:140px"></select>
+          </div>
+        </div>
+        <div style="text-align:center"><button class="btn-main" onclick="queryComboMatch()">FULL SCAN</button></div>
+      </div>
+      <div id="matchResult"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 星座数据 ==========
+const Z=[
+{name:"白羊座",en:"Aries",sym:"♈",date:"3.21-4.19",elem:"fire",elemCn:"火象",ruler:"火星",trait:["热情","勇敢","冲动","直率"],
+ desc:"白羊座是黄道十二宫的第一个星座，象征着新生与开拓。火星赋予了白羊座无穷的行动力和开拓精神。",
+ love:"在爱情中直接而热烈，追求时不遗余力。需要找到能跟上你节奏的伴侣。",
+ career:"天生的领导者，适合创业、竞技类职业。在需要快速决断的领域表现出色。",
+ lucky:{num:"9, 18, 27",color:"红色、白色",stone:"钻石",day:"星期二"}},
+{name:"金牛座",en:"Taurus",sym:"♉",date:"4.20-5.20",elem:"earth",elemCn:"土象",ruler:"金星",trait:["稳重","务实","固执","忠诚"],
+ desc:"金牛座由金星守护，追求物质与精神的双重富足。坚韧不拔的性格让金牛座总能达成目标。",
+ love:"对感情忠诚持久，注重安全感和稳定性。一旦认定就会全心投入。",
+ career:"金融、艺术、美食等领域的佼佼者。脚踏实地是你最大的优势。",
+ lucky:{num:"6, 15, 24",color:"绿色、粉色",stone:"祖母绿",day:"星期五"}},
+{name:"双子座",en:"Gemini",sym:"♊",date:"5.21-6.21",elem:"air",elemCn:"风象",ruler:"水星",trait:["灵活","机智","善变","好奇"],
+ desc:"双子座由水星主宰，拥有敏捷的思维和超强的沟通能力。双面性格让双子充满魅力与神秘感。",
+ love:"需要精神上的共鸣和持续的新鲜感。沟通是你维系感情的关键。",
+ career:"传媒、写作、销售等需要沟通力的行业最适合你。善于同时处理多项事务。",
+ lucky:{num:"5, 14, 23",color:"黄色、银色",stone:"玛瑙",day:"星期三"}},
+{name:"巨蟹座",en:"Cancer",sym:"♋",date:"6.22-7.22",elem:"water",elemCn:"水象",ruler:"月亮",trait:["温柔","敏感","顾家","情绪化"],
+ desc:"巨蟹座由月亮守护，情感丰富而细腻。家庭和安全感是巨蟹座永恒的追求。",
+ love:"深情且专一，把爱人视如珍宝。倾向于营造温馨的二人世界。",
+ career:"教育、医疗、餐饮等服务型行业。你的同理心是最大的职场优势。",
+ lucky:{num:"2, 11, 20",color:"白色、银色",stone:"珍珠",day:"星期一"}},
+{name:"狮子座",en:"Leo",sym:"♌",date:"7.23-8.22",elem:"fire",elemCn:"火象",ruler:"太阳",trait:["自信","慷慨","骄傲","热情"],
+ desc:"狮子座由太阳主宰，天生具有王者风范。慷慨大方的性格让你身边总是朋友如云。",
+ love:"在爱情中渴望被崇拜和仰望。你的热情和浪漫让伴侣感到被珍视。",
+ career:"演艺、管理、时尚等需要展现个人魅力的领域。你注定是舞台中心。",
+ lucky:{num:"1, 10, 19",color:"金色、橙色",stone:"红宝石",day:"星期日"}},
+{name:"处女座",en:"Virgo",sym:"♍",date:"8.23-9.22",elem:"earth",elemCn:"土象",ruler:"水星",trait:["细致","完美","谦虚","挑剔"],
+ desc:"处女座由水星守护，以极致的细节追求和分析能力著称。你对完美的执着推动世界变得更好。",
+ love:"在感情中注重细节和品质。你的付出往往体现在无微不至的关怀中。",
+ career:"科研、编辑、医疗等需要精确度的职业。你的严谨是无可替代的。",
+ lucky:{num:"5, 14, 23",color:"灰色、米色",stone:"蓝宝石",day:"星期三"}},
+{name:"天秤座",en:"Libra",sym:"♎",date:"9.23-10.23",elem:"air",elemCn:"风象",ruler:"金星",trait:["优雅","公正","犹豫","社交"],
+ desc:"天秤座由金星守护，追求和谐与美的平衡。天生的外交家，在人际关系中游刃有余。",
+ love:"渴望势均力敌的伴侣关系。你的浪漫和优雅让人难以抗拒。",
+ career:"法律、外交、设计等需要平衡感的领域。你是天生的协调者。",
+ lucky:{num:"6, 15, 24",color:"粉色、蓝色",stone:"蛋白石",day:"星期五"}},
+{name:"天蝎座",en:"Scorpio",sym:"♏",date:"10.24-11.22",elem:"water",elemCn:"水象",ruler:"冥王星",trait:["深邃","坚定","神秘","占有欲"],
+ desc:"天蝎座由冥王星主宰，拥有最强大的意志力和洞察力。你能看穿所有伪装。",
+ love:"爱得深沉而热烈，占有欲强但也极度忠诚。你的爱是全身心的投入。",
+ career:"侦探、心理学、金融等需要深度分析的领域。你的洞察力无人能及。",
+ lucky:{num:"4, 13, 22",color:"暗红色、黑色",stone:"黄玉",day:"星期二"}},
+{name:"射手座",en:"Sagittarius",sym:"♐",date:"11.23-12.21",elem:"fire",elemCn:"火象",ruler:"木星",trait:["乐观","自由","直率","冒险"],
+ desc:"射手座由木星守护，永远在追寻真理和自由的旅途上。乐观的天性让你成为人群中的开心果。",
+ love:"追求精神自由的伴侣关系。旅行和冒险是你表达爱的方式。",
+ career:"旅游、哲学、教育等开拓视野的行业。世界是你的课堂。",
+ lucky:{num:"3, 12, 21",color:"紫色、蓝色",stone:"绿松石",day:"星期四"}},
+{name:"摩羯座",en:"Capricorn",sym:"♑",date:"12.22-1.19",elem:"earth",elemCn:"土象",ruler:"土星",trait:["坚韧","务实","严谨","野心"],
+ desc:"摩羯座由土星主宰，是最具耐力和目标感的星座。你相信时间会证明一切努力的价值。",
+ love:"在感情中缓慢而坚定。你的爱不浮夸但最为可靠和持久。",
+ career:"企业管理、建筑、政府等需要长远规划的领域。你是最强的执行者。",
+ lucky:{num:"8, 17, 26",color:"黑色、深棕",stone:"石榴石",day:"星期六"}},
+{name:"水瓶座",en:"Aquarius",sym:"♒",date:"1.20-2.18",elem:"air",elemCn:"风象",ruler:"天王星",trait:["独立","创新","叛逆","博爱"],
+ desc:"水瓶座由天王星守护，是最具前瞻性和创造力的星座。你为人类的未来而思考。",
+ love:"追求灵魂层面的连接，不喜欢被束缚。友谊式的爱情最适合你。",
+ career:"科技、公益、航空等面向未来的行业。你的创新思维改变世界。",
+ lucky:{num:"7, 16, 25",color:"蓝色、银色",stone:"紫水晶",day:"星期六"}},
+{name:"双鱼座",en:"Pisces",sym:"♓",date:"2.19-3.20",elem:"water",elemCn:"水象",ruler:"海王星",trait:["浪漫","直觉","梦幻","共情"],
+ desc:"双鱼座由海王星主宰，游弋在梦幻与现实之间。强大的直觉和共情能力是你最珍贵的天赋。",
+ love:"在爱情中浪漫而理想化。你能感知伴侣最细微的情绪变化。",
+ career:"艺术、音乐、心理咨询等需要感受力的领域。你是最好的倾听者。",
+ lucky:{num:"3, 12, 21",color:"海蓝、紫色",stone:"海蓝宝石",day:"星期四"}}
+];
+
+const SX=["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"];
+
+// ========== 导航切换 ==========
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.getElementById('panel'+id.charAt(0).toUpperCase()+id.slice(1)).classList.add('show');
+  document.querySelectorAll('.nav button').forEach((b,i)=>b.classList.toggle('on',['book','fortune','match'][i]===id));
+}
+
+// ========== 星座书 ==========
+let curPage=0;
+const totalPages=12;
+
+function buildCover(){
+  const cover=document.getElementById('bookCover');
+  let grid='';
+  Z.forEach((z,i)=>{
+    grid+=`<div class="zitem" onclick="event.stopPropagation();enterBook(${i})"><span class="sym">${z.sym}</span><span class="zname">${z.name}</span><span class="zdate">${z.date}</span></div>`;
+  });
+  cover.innerHTML=`
+    <div class="cover-title">ASTRAL CODEX</div>
+    <div class="cover-sub">星 际 命 典</div>
+    <div class="cover-symbols">♈ ♉ ♊ ♋ ♌ ♍</div>
+    <div class="cover-grid-wrap">
+      <div class="cover-grid">${grid}</div>
+    </div>
+    <div class="cover-symbols" style="margin-top:14px;margin-bottom:0">♎ ♏ ♐ ♑ ♒ ♓</div>
+    <p class="cover-hint">✦ 点击星座翻开命运之书 ✦</p>`;
+}
+
+function enterBook(targetIdx){
+  const book=document.getElementById('book');
+  const cover=document.getElementById('bookCover');
+  // 展开书
+  book.classList.remove('closed');
+  book.classList.add('opened');
+  cover.classList.add('hidden');
+  setTimeout(()=>{
+    document.getElementById('bookInner').style.display='block';
+    document.getElementById('bookNav').style.display='flex';
+    curPage=0;
+    buildPages();
+    if(targetIdx>0)setTimeout(()=>jumpToPage(targetIdx),150);
+  },500);
+}
+
+function backToCover(){
+  const book=document.getElementById('book');
+  const cover=document.getElementById('bookCover');
+  document.getElementById('bookInner').style.display='none';
+  document.getElementById('bookNav').style.display='none';
+  document.getElementById('bookInner').querySelectorAll('.page').forEach(p=>p.remove());
+  cover.classList.remove('hidden');
+  book.classList.remove('opened');
+  book.classList.add('closed');
+  curPage=0;
+}
+
+function buildPages(){
+  const container=document.getElementById('bookInner');
+  container.querySelectorAll('.page').forEach(p=>p.remove());
+  Z.forEach((z,i)=>{
+    const page=document.createElement('div');
+    page.className='page';
+    page.style.zIndex=totalPages-i;
+    page.dataset.idx=i;
+    const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[z.elem];
+    page.innerHTML=`
+      <div class="page-front">
+        <div class="page-title" style="color:${ec}">${z.sym} ${z.name} <span style="opacity:.4;font-size:.72rem">${z.en}</span></div>
+        <div class="page-content">
+          <div style="font-size:3rem;text-align:center;margin:14px 0;filter:drop-shadow(0 0 14px ${ec}50)">${z.sym}</div>
+          <p style="text-align:center;font-size:.82rem;color:${ec};margin-bottom:14px;letter-spacing:2px">${z.date} · ${z.elemCn} · 守护星：${z.ruler}</p>
+          <p style="font-size:.95rem;line-height:2.1">${z.desc}</p>
+          <div style="margin-top:14px">${z.trait.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+          <p style="margin-top:18px;font-size:.8rem;color:rgba(200,216,240,.4);text-align:center">▸ 点击翻页查看详情 →</p>
+        </div>
+      </div>
+      <div class="page-back">
+        <div class="page-title" style="color:${ec}">${z.sym} ${z.name} · 详解</div>
+        <div class="page-content">
+          <b style="font-size:.95rem">💕 爱情</b>
+          <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${ec}30;font-size:.95rem;line-height:2">${z.love}</p>
+          <b style="font-size:.95rem">💼 事业</b>
+          <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${ec}30;font-size:.95rem;line-height:2">${z.career}</p>
+          <b style="font-size:.95rem">🍀 幸运物</b>
+          <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
+            <p style="font-size:.9rem">幸运数字：<span style="color:${ec}">${z.lucky.num}</span></p>
+            <p style="font-size:.9rem">幸运颜色：<span style="color:${ec}">${z.lucky.color}</span></p>
+            <p style="font-size:.9rem">守护宝石：<span style="color:${ec}">${z.lucky.stone}</span></p>
+            <p style="font-size:.9rem">幸运日：<span style="color:${ec}">${z.lucky.day}</span></p>
+          </div>
+        </div>
+      </div>`;
+    page.addEventListener('click',()=>{
+      if(!page.classList.contains('flipped')&&parseInt(page.dataset.idx)===curPage)bookNext();
+    });
+    container.appendChild(page);
+  });
+  updateBookLeft();
+  updatePageInfo();
+}
+
+function updateBookLeft(){
+  const left=document.getElementById('bookLeft');
+  if(curPage===0){
+    const z=Z[0];
+    const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[z.elem];
+    left.innerHTML=`
+      <div class="page-title" style="color:${ec};text-align:center">✦ ${z.sym} ${z.name}</div>
+      <div class="page-content" style="text-align:center">
+        <p style="font-size:3.5rem;margin:20px 0;filter:drop-shadow(0 0 14px ${ec}40)">${z.sym}</p>
+        <p style="font-size:.85rem;color:${ec};margin-bottom:14px;letter-spacing:2px">${z.date} · ${z.elemCn}</p>
+        <p style="font-size:.92rem;line-height:2;text-align:left">${z.desc}</p>
+        <p style="margin-top:20px;font-size:.78rem;color:rgba(200,216,240,.25)">这是第一页 · 向右翻页浏览更多星座</p>
+      </div>`;
+  }else{
+    const pz=Z[curPage-1];
+    const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[pz.elem];
+    left.innerHTML=`
+      <div class="page-title" style="color:${ec}">${pz.sym} ${pz.name} · 详解</div>
+      <div class="page-content">
+        <b style="font-size:.95rem">💕 爱情</b>
+        <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${ec}30;font-size:.95rem;line-height:2">${pz.love}</p>
+        <b style="font-size:.95rem">💼 事业</b>
+        <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${ec}30;font-size:.95rem;line-height:2">${pz.career}</p>
+        <b style="font-size:.95rem">🍀 幸运物</b>
+        <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
+          <p style="font-size:.9rem">幸运数字：<span style="color:${ec}">${pz.lucky.num}</span></p>
+          <p style="font-size:.9rem">幸运颜色：<span style="color:${ec}">${pz.lucky.color}</span></p>
+          <p style="font-size:.9rem">守护宝石：<span style="color:${ec}">${pz.lucky.stone}</span></p>
+          <p style="font-size:.9rem">幸运日：<span style="color:${ec}">${pz.lucky.day}</span></p>
+        </div>
+      </div>`;
+  }
+}
+function bookNext(){
+  if(curPage>=totalPages)return;
+  const pages=document.querySelectorAll('.page');
+  pages[curPage].classList.add('flipped');
+  pages[curPage].style.zIndex=curPage+1; // 翻过的页：越晚翻的越靠上
+  curPage++;
+  updateBookLeft();
+  updatePageInfo();
+}
+function bookPrev(){
+  if(curPage<=0)return;
+  curPage--;
+  const pages=document.querySelectorAll('.page');
+  const pg=pages[curPage];
+  // 先提高z-index让回翻动画在最上层可见
+  pg.style.zIndex=totalPages+1;
+  pg.classList.remove('flipped');
+  // 动画完成后恢复正常z-index
+  setTimeout(()=>{pg.style.zIndex=totalPages-curPage},1050);
+  updateBookLeft();
+  updatePageInfo();
+}
+function jumpToPage(target){
+  const pages=document.querySelectorAll('.page');
+  if(target>curPage){
+    const go=()=>{if(curPage<target){pages[curPage].classList.add('flipped');pages[curPage].style.zIndex=curPage+1;curPage++;updateBookLeft();updatePageInfo();setTimeout(go,150)}};go();
+  }else if(target<curPage){
+    const go=()=>{if(curPage>target){curPage--;const pg=pages[curPage];pg.style.zIndex=totalPages+1;pg.classList.remove('flipped');setTimeout(()=>{pg.style.zIndex=totalPages-curPage},1050);updateBookLeft();updatePageInfo();setTimeout(go,150)}};go();
+  }
+}
+function updatePageInfo(){document.getElementById('pgInfo').textContent=`${curPage+1} / ${totalPages+1}`}
+
+// ========== 运势查询 ==========
+function getZodiacByDate(m,d){
+  const ranges=[[1,20,11],[2,19,11],[3,21,0],[4,20,1],[5,21,2],[6,22,3],[7,23,4],[8,23,5],[9,23,6],[10,24,7],[11,23,8],[12,22,9]];
+  for(let i=ranges.length-1;i>=0;i--){if(m>ranges[i][0]||(m===ranges[i][0]&&d>=ranges[i][1]))return ranges[i][2]}
+  return 9; // 摩羯
+}
+function getSx(year){return SX[(year-4)%12]}
+function seededRand(seed){let s=seed;return()=>{s=Math.sin(s)*10000;return s-Math.floor(s)}}
+
+function queryFortune(){
+  const y=+document.getElementById('fYear').value,m=+document.getElementById('fMonth').value,d=+document.getElementById('fDay').value;
+  if(!y||m<1||m>12||d<1||d>31)return;
+  const zi=getZodiacByDate(m,d);
+  const z=Z[zi];
+  const sx=getSx(y);
+  const seed=y*10000+m*100+d+Date.now()%1000;
+  const r=seededRand(seed);
+  const scores={love:55+Math.floor(r()*45),career:50+Math.floor(r()*50),health:55+Math.floor(r()*45),wealth:45+Math.floor(r()*55),luck:50+Math.floor(r()*50)};
+  const forecasts={
+    short:genForecast(z,scores,'short',r),
+    long:genForecast(z,scores,'long',r)
+  };
+  const personality=genPersonality(z,r);
+  const el=document.getElementById('fortuneResult');
+  el.innerHTML=`
+  <div class="result-card">
+    <div class="rc-head">
+      <span class="rc-sym">${z.sym}</span>
+      <div class="rc-info">
+        <h3>${z.name} · ${z.en}</h3>
+        <p>${z.date} · ${z.elemCn} · 属${sx} · ${y}年${m}月${d}日</p>
+      </div>
+    </div>
+    ${meter('爱情运',scores.love)}${meter('事业运',scores.career)}${meter('健康运',scores.health)}${meter('财富运',scores.wealth)}${meter('综合运',scores.luck)}
+    <div class="fortune-section"><h4>▸ 性格分析</h4><p>${personality}</p></div>
+    <div class="fortune-section"><h4>▸ 近期运势（1-3个月）</h4><p>${forecasts.short}</p></div>
+    <div class="fortune-section"><h4>▸ 长期展望（半年-一年）</h4><p>${forecasts.long}</p></div>
+  </div>`;
+  // 延迟动画meter
+  setTimeout(()=>{el.querySelectorAll('.meter-fill').forEach(f=>{f.style.width=f.dataset.w+'%'})},100);
+}
+function meter(label,val){
+  const cls=val>=80?'high':'';
+  return `<div class="meter"><span class="meter-label">${label}</span><div class="meter-bar"><div class="meter-fill ${cls}" data-w="${val}" style="width:0"></div></div><span class="meter-val">${val}</span></div>`;
+}
+function genPersonality(z,r){
+  const openers=[
+    `作为${z.elemCn}星座的典型代表，你天生具有${z.trait[0]}与${z.trait[1]}兼备的双重特质。`,
+    `在${z.ruler}的守护下，${z.name}的灵魂深处流淌着${z.trait[0]}的火焰与${z.trait[1]}的底色。`,
+    `${z.elemCn}赋予了你独特的生命底色——${z.trait[0]}是你最外显的标签，而${z.trait[1]}则是你不为人知的内核。`
+  ];
+  const middles=[
+    `${z.ruler}的能量在你身上体现为一种${r()>.5?'对未知世界的强烈好奇':'对内心秩序的执着追求'}。在人际关系中，你${r()>.5?'总能敏锐捕捉他人的情绪波动':'习惯用行动而非言语来表达关心'}。`,
+    `你的思维方式独特——${r()>.5?'善于从全局角度审视问题，总能看到别人忽略的关联':'注重细节与实证，不轻易被表象所迷惑'}。这让你在${r()>.5?'需要创造性解决方案':'需要严谨分析判断'}的场合中脱颖而出。`,
+    `在内心深处，你始终怀有${r()>.5?'对理想生活的坚定愿景，这份信念支撑你穿越一切迷茫':'一种不安分的灵魂，推动你不断打破舒适圈、拥抱变化'}。你的${z.trait[1]}特质在亲密关系中表现得尤为明显。`
+  ];
+  const traits=[
+    `你的${z.trait[2]}有时会让身边的人感到${r()>.5?'难以捉摸':'压力倍增'}，但这恰恰是你最真实的一面。学会在${r()>.5?'坚持自我与理解他人之间找到微妙的平衡':'表达需求与给予空间之间自如切换'}，将大幅提升你的人格魅力。`,
+    `值得警惕的是，${z.trait[3]}的特质在压力环境下可能被放大。${r()>.5?'定期的独处与反思能帮助你重新校准内心的罗盘':'与信任的朋友进行深度对话，能有效化解内在的紧张与焦虑'}。`,
+    `你天生自带的${z.trait[0]}光环让你在社交场合中${r()>.5?'如鱼得水':'自带吸引力'}，但也要小心${r()>.5?'因过度投入他人的情感而忽视自身需求':'因追求完美而给自己施加不必要的压力'}。`
+  ];
+  const closers=[
+    `总体而言，${z.name}的你拥有${r()>.5?'成为某个领域引领者':'在平凡中活出非凡意义'}的潜质。${z.ruler}将持续为你提供来自宇宙深处的能量补给。`,
+    `记住，你最大的力量来源于${r()>.5?'对自己独特性的全然接纳':'将内心的敏感转化为理解世界的智慧'}。${z.elemCn}的能量永远在你身边流淌。`,
+    `你的人生课题是学会${r()>.5?'在坚定与柔软之间自由切换':'将与生俱来的天赋转化为可持续的生命力量'}。宇宙对${z.name}的期许，远比你想象的更加宏大。`
+  ];
+  return pick(openers,r)+pick(middles,r)+pick(traits,r)+pick(closers,r);
+}
+function pick(arr,r){return arr[Math.floor(r()*arr.length)]}
+function genForecast(z,sc,type,r){
+  if(type==='short'){
+    const areas=['感情生活','职业发展','人际社交','财务投资','身心健康','学习成长','家庭关系'];
+    const a1=areas[Math.floor(r()*areas.length)],a2=areas[Math.floor(r()*areas.length)];
+    const trends=sc.luck>75?['强势上扬','高歌猛进','迎来丰收']:sc.luck>55?['稳中有升','波动向好','逐步明朗']:['低位蓄势','暗流涌动','挑战与机遇并存'];
+    const trend=pick(trends,r);
+    const openings=[
+      `近期你的综合运势呈现「${trend}」的格局。${z.ruler}在星盘中的位移暗示着一个关键的能量转折点正在形成。`,
+      `星象分析显示，未来1-3个月你将进入一个「${trend}」的周期。${z.elemCn}的元素能量正在快速聚集。`,
+      `当前星盘格局对${z.name}极为关键——整体呈「${trend}」之势，多个行星的角度关系正在为你创造独特的能量窗口。`
+    ];
+    const details=[
+      `在${a1}方面，${r()>.5?'一个期待已久的好消息即将到来':'一个需要你当机立断的选择将在近期浮现'}。${r()>.5?'保持开放的心态，机会往往藏在意想不到的角落':'回顾过去的经验，你会发现答案早已浮现'}。`,
+      `${a2}领域将成为本阶段的焦点——${r()>.5?'一次重要的对话或会面可能改变局势的走向':'一个酝酿已久的计划终于迎来了执行的最佳时机'}。建议${r()>.5?'主动出击，你的果断将获得丰厚回报':'保持耐心观察，最佳入场时机尚未完全到来'}。`,
+      `关于${a1}，星象提示你${r()>.5?'可能会收到一份意外的邀约或提议，认真评估后值得一试':'正在进行的某个事项将出现意料之外的转折，保持灵活应变的心态'}。`
+    ];
+    const advices=[
+      `特别提醒：${r()>.5?'本月中旬前后':'未来两周内'}是${r()>.5?'处理遗留问题':'开启新计划'}的黄金窗口。${z.ruler}的能量将在此期间达到峰值，善加利用将事半功倍。`,
+      `从能量层面看，${r()>.5?'每周三和周五是你的高能日，适合处理重要事务':'月初和月末各有一次能量高峰，把关键决策安排在这些时段'}。同时注意${r()>.5?'充足的睡眠和适度运动':'冥想和独处时间'}来保持能量场的稳定。`,
+      `建议在这段时期${r()>.5?'多与年长或有经验的人交流，他们的建议将意外地精准':'信任自己的第一直觉，你的潜意识正在接收宇宙的信号'}。${r()>.5?'同时关注梦境中的隐喻，它们可能包含重要启示':'保持写日记的习惯，回顾时你会发现规律'}。`
+    ];
+    return pick(openings,r)+pick(details,r)+pick(details,r)+pick(advices,r);
+  }else{
+    const phases=sc.luck>65?['扩张上升','突破蜕变','厚积薄发']:['深度蓄能','调整重塑','韬光养晦'];
+    const phase=pick(phases,r);
+    const opens=[
+      `从宏观星象周期来看，你正步入一个「${phase}」的长期阶段。未来半年到一年，${z.ruler}与多颗外行星的互动将深刻塑造你的人生轨迹。`,
+      `长期星象分析揭示了一个重要趋势——未来6-12个月，你将经历一段「${phase}」的周期。这是${z.name}近几年来最关键的能量转换期之一。`,
+      `星盘的长周期运行显示，${z.elemCn}的深层能量正在经历一次重大的「${phase}」过程。这个过程将在未来一年内逐步展开。`
+    ];
+    const mids=[
+      `在事业和人生方向上，${r()>.5?'一个你从未想过的领域或机会将逐渐浮现在视野中。不要急于否定，给自己时间去探索和验证':'你一直坚持的某条路将在未来几个月展现出清晰的回报，之前所有的积累都不会白费'}。`,
+      `人际关系层面，${r()>.5?'一段深具变革意义的关系将在此期间发展成型——可能是事业伙伴、灵魂伴侣或精神导师':'你的社交圈将经历一次自然的筛选与重组，留下的关系将更有深度和质量'}。`,
+      `财务方面的长期走势${sc.wealth>65?'值得乐观——':'需要审慎规划——'}${r()>.5?'一个与你的兴趣或特长相关的收入来源可能在下半年开始显现':'通过调整消费结构和投资策略，你的财务状况将在年底前明显改善'}。`,
+      `个人成长是这个周期的核心主题。${r()>.5?'你可能会被某本书、某次旅行或某个人深刻触动，从而开启一段全新的认知升级之旅':'一项新技能或新领域的学习将为你打开意想不到的人生大门，关键是迈出第一步'}。`
+    ];
+    const ends=[
+      `长期建议：${r()>.5?'制定一个6个月的阶段性目标，将大愿景拆解为可执行的小步骤':'每月进行一次深度自我复盘，追踪内心的真实感受与外在成果的变化'}。${z.elemCn}的力量在${r()>.5?'稳定的节奏':'有意识的突破'}中最能发挥作用。到年末回望，你会惊叹于自己的蜕变。`,
+      `总结：未来一年是${z.name}的${r()>.5?'播种年——现在种下的每一颗种子都将在合适的时机开花结果':'收获年——过去几年的沉淀终于到了兑现的时刻'}。${z.ruler}始终在为你护航，保持${r()>.5?'信念':'行动力'}，宇宙自有最好的安排。`,
+      `展望全年，${r()>.5?'春夏是积极行动的季节，秋冬则适合沉淀与收获':'上半年专注内在修炼，下半年外在成果将自然显现'}。${z.name}最独特的${z.trait[0]}特质将在这个周期中成为你最大的资本。相信过程，拥抱变化。`
+    ];
+    return pick(opens,r)+pick(mids,r)+pick(mids,r)+pick(ends,r);
+  }
+}
+
+// ========== 配对指数 ==========
+function initMatchSelects(){
+  const sA=document.getElementById('matchA'),sB=document.getElementById('matchB');
+  Z.forEach((z,i)=>{
+    sA.innerHTML+=`<option value="${i}">${z.sym} ${z.name}</option>`;
+    sB.innerHTML+=`<option value="${i}">${z.sym} ${z.name}</option>`;
+  });
+  sB.selectedIndex=1;
+  const xA=document.getElementById('sxA'),xB=document.getElementById('sxB');
+  SX.forEach((s,i)=>{xA.innerHTML+=`<option value="${i}">${s}</option>`;xB.innerHTML+=`<option value="${i}">${s}</option>`});
+  xB.selectedIndex=1;
+  // combo selects
+  const cza=document.getElementById('comboZA'),czb=document.getElementById('comboZB');
+  const csa=document.getElementById('comboSA'),csb=document.getElementById('comboSB');
+  Z.forEach((z,i)=>{cza.innerHTML+=`<option value="${i}">${z.sym} ${z.name}</option>`;czb.innerHTML+=`<option value="${i}">${z.sym} ${z.name}</option>`});
+  czb.selectedIndex=1;
+  SX.forEach((s,i)=>{csa.innerHTML+=`<option value="${i}">${s}</option>`;csb.innerHTML+=`<option value="${i}">${s}</option>`});
+  csb.selectedIndex=1;
+}
+function switchMatchType(type,btn){
+  document.querySelectorAll('.match-tabs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('matchZodiac').style.display=type==='zodiac'?'block':'none';
+  document.getElementById('matchShengxiao').style.display=type==='shengxiao'?'block':'none';
+  document.getElementById('matchCombo').style.display=type==='combo'?'block':'none';
+  document.getElementById('matchResult').innerHTML='';
+}
+function queryMatch(){
+  const ai=+document.getElementById('matchA').value,bi=+document.getElementById('matchB').value;
+  const a=Z[ai],b=Z[bi];
+  // 元素相性
+  const compat={fire:{fire:75,earth:55,air:90,water:50},earth:{fire:55,earth:80,air:60,water:85},air:{fire:90,earth:60,air:70,water:55},water:{fire:50,earth:85,air:55,water:75}};
+  const base=compat[a.elem][b.elem];
+  const seed=ai*100+bi+7;
+  const r=seededRand(seed);
+  const love=Math.min(99,Math.max(30,base+Math.floor((r()-.5)*20)));
+  const friend=Math.min(99,Math.max(30,base+Math.floor((r()-.5)*25)));
+  const work=Math.min(99,Math.max(35,base+Math.floor((r()-.5)*30)));
+  const overall=Math.round((love*0.4+friend*0.3+work*0.3));
+  const el=document.getElementById('matchResult');
+  el.innerHTML=`
+  <div class="match-result">
+    <div class="match-pair">
+      <div class="mp-item"><span class="mp-sym">${a.sym}</span><span class="mp-name">${a.name}</span></div>
+      <span class="match-heart">💫</span>
+      <div class="mp-item"><span class="mp-sym">${b.sym}</span><span class="mp-name">${b.name}</span></div>
+    </div>
+    <div class="match-score"><div class="big">${overall}%</div><div class="lbl">COMPATIBILITY</div></div>
+    ${meter('爱情契合',love)}${meter('友谊指数',friend)}${meter('工作搭配',work)}
+    <div class="match-detail">
+      <div class="md-card"><h5>▸ 相处模式</h5><p>${genMatchText(a,b,'mode',r)}</p></div>
+      <div class="md-card"><h5>▸ 优势互补</h5><p>${genMatchText(a,b,'strength',r)}</p></div>
+      <div class="md-card"><h5>▸ 情感深度</h5><p>${genMatchText(a,b,'emotion',r)}</p></div>
+      <div class="md-card"><h5>▸ 潜在摩擦</h5><p>${genMatchText(a,b,'conflict',r)}</p></div>
+      <div class="md-card" style="grid-column:1/-1"><h5>▸ 长久建议</h5><p>${genMatchText(a,b,'advice',r)}</p></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{el.querySelectorAll('.meter-fill').forEach(f=>{f.style.width=f.dataset.w+'%'})},100);
+}
+function genMatchText(a,b,type,r){
+  const pool={
+    mode:[
+      `${a.name}的${a.trait[0]}与${b.name}的${b.trait[1]}形成了一种充满张力的互动模式。在日常相处中，${a.name}倾向于${r()>.5?'主动引领节奏':'用直觉感知对方需求'}，而${b.name}则${r()>.5?'以稳定的支持回应':'用独特的方式表达欣赏'}。这种动态关系让两人都能在互动中持续成长。`,
+      `当${a.elemCn}遇上${b.elemCn}，两种截然不同的能量在碰撞中催生出独特的相处韵律。${a.name}带来${r()>.5?'激情与冲劲':'深度与洞察'}，${b.name}则贡献${r()>.5?'稳定与安全感':'灵活与新鲜感'}。你们的关系如同${r()>.5?'交响乐中两个互补的声部':'一幅色彩对比强烈却和谐统一的画作'}。`,
+      `在这段关系中，${a.name}通常扮演${r()>.5?'开拓者':'思考者'}的角色，而${b.name}则是天然的${r()>.5?'协调者':'执行者'}。这种角色分工${r()>.5?'让你们在面对挑战时效率极高':'有时可能导致对彼此期待的固化，适当角色互换会带来惊喜'}。`,
+      `${a.name}需要${r()>.5?'被崇拜和肯定':'深度的灵魂共鸣'}，而${b.name}渴望${r()>.5?'稳定和可预期的回应':'自由与个人空间'}。理解彼此核心需求的差异，是建立持久默契的第一步。`
+    ],
+    strength:[
+      `${a.elemCn}与${b.elemCn}的组合蕴含独特优势——${a.name}的${a.trait[0]}恰好弥补了${b.name}在这方面的不足，而${b.name}的${b.trait[1]}则为${a.name}提供了急需的${r()>.5?'稳定支撑':'全新视角'}。这种互补在${r()>.5?'重大人生决策':'日常小事的处理'}中体现得淋漓尽致。`,
+      `你们的组合具有罕见的"能力矩阵互补"——${a.name}擅长${r()>.5?'开创性思考和大局把控':'感性洞察和情感连接'}，${b.name}精于${r()>.5?'细节执行和风险管控':'理性分析和资源整合'}。携手合作时，你们几乎没有盲区。`,
+      `从元素相性看，${a.name}的${a.trait[0]}能够${r()>.5?'点燃':'稳固'}${b.name}内心深处的${r()>.5?'热情与勇气':'安全感与归属感'}。反过来，${b.name}的${b.trait[1]}能帮助${a.name}${r()>.5?'将狂想转化为现实':'在高压下保持冷静与清醒'}。这种双向赋能极为珍贵。`,
+      `值得一提的是，你们在${r()>.5?'危机时刻':'需要创造性解决方案时'}的配合尤其出色。${a.name}的果断加上${b.name}的周全，能创造出1+1远大于2的协同效应。`
+    ],
+    emotion:[
+      `在情感深度上，${a.name}的爱是${r()>.5?'热烈奔放、不加掩饰的':'深沉内敛、行胜于言的'}，而${b.name}的爱则表现为${r()>.5?'细水长流的日常关怀':'充满仪式感的浪漫表达'}。${r()>.5?'两种爱的语言需要时间去学习和翻译':'一旦理解了彼此的表达方式，感情将获得质的飞跃'}。`,
+      `${a.ruler}与${b.ruler}的情感频率存在${r()>.5?'天然的共振点——你们在某些关键时刻会产生惊人的心有灵犀':'一定的频率差——这不是缺点，恰恰是让关系保持吸引力和新鲜感的秘密所在'}。你们的情感连接在${r()>.5?'共同面对挑战时':'安静独处的时刻'}最为深厚。`,
+      `这段关系中最珍贵的情感特质是——${a.name}能让${b.name}感受到${r()>.5?'被无条件接纳的安全':'被激励去突破自我的勇气'}，而${b.name}则赋予${a.name}${r()>.5?'心灵深处的宁静与归属':'敢于展露脆弱的信任空间'}。这种相互滋养是${r()>.5?'许多关系可望而不可即的':'你们最需要珍惜和维护的'}核心纽带。`
+    ],
+    conflict:[
+      `主要摩擦点在于：${a.name}的${a.trait[2]}与${b.name}的${b.trait[2]}在特定情境下会直接碰撞。${r()>.5?'当双方同时处于高压状态，容易陷入「各说各话」的困境':'在涉及金钱观、时间管理或社交边界的议题上，两人可能持有截然相反的立场'}。关键是${r()>.5?'避免在情绪高峰期做决定':'建立一套「暂停-冷静-再沟通」的机制'}。`,
+      `需要警惕的暗礁有：${r()>.5?`${a.name}可能觉得${b.name}过于${b.trait[2]}，而${b.name}则认为${a.name}太${a.trait[2]}`:`当外界压力增大时，${a.name}倾向于向外寻找突破口，${b.name}却选择向内收缩防御`}。这种差异不是对错问题，而是两套不同的生存策略。${r()>.5?'提前约定冲突处理规则，能有效避免小分歧升级为大矛盾':'尝试站在对方的元素属性角度思考，你会发现理解并不困难'}。`,
+      `在${r()>.5?'长期相处':'关系深入'}后，${a.name}的${a.trait[3]}可能让${b.name}感到${r()>.5?'喘不过气':'被忽视'}，而${b.name}的${b.trait[3]}也可能触发${a.name}的${r()>.5?'不安全感':'挫败感'}。好消息是，这些摩擦都属于可协商的范畴——只要双方愿意为对方调整一小步。`
+    ],
+    advice:[
+      `给你们的综合建议：第一，${r()>.5?'每周预留一段「无手机」的高质量相处时光':'建立每月一次的「关系复盘」习惯，坦诚分享彼此的感受'}；第二，${r()>.5?'学习对方的「爱的语言」——${a.name}多用${b.name}能理解的方式表达爱':'创造共同的仪式感——无论多小，固定的专属仪式是关系的粘合剂'}；第三，${r()>.5?'在分歧面前，优先问「我们怎么一起解决」而非「谁对谁错」':'保持各自独立成长的空间，两个持续进步的人才能走得更远'}。${a.ruler}与${b.ruler}的宇宙能量将在你们共同努力下产生最美的共鸣。`,
+      `核心建议：接纳「不完美的完美」。${a.name}和${b.name}的组合不需要消除所有差异——${r()>.5?'差异正是让你们的关系充满活力的燃料':'每一次成功的磨合都会让你们的连接更加坚固'}。实操层面：${r()>.5?'在重要节日互相写一封手写信，用文字记录你们眼中对方的光芒':'一起学习一样新东西——烹饪、舞蹈或一门外语，共同的新鲜体验能迅速拉近心灵距离'}。${r()>.5?'当冲突来临时，记住你们是「队友」而非「对手」':'给关系设一个「安全词」，当对话过于激烈时一方说出就立刻暂停'}。`,
+      `长远来看，${a.name}与${b.name}的关系最大的潜力在于——${r()>.5?'你们能够帮助彼此成为更好版本的自己':'在对方身上看到自己从未发掘过的可能性'}。建议${r()>.5?'每年一起去一个陌生的地方旅行，在新环境中重新发现彼此':'共同建立一个有意义的长期目标，无论大小，这份共同的方向感是关系最好的压舱石'}。记住：最好的关系不是完美无缺，而是两个人都愿意为了「我们」而持续成长。`
+    ]
+  };
+  return pick(pool[type],r);
+}
+function querySxMatch(){
+  const ai=+document.getElementById('sxA').value,bi=+document.getElementById('sxB').value;
+  const a=SX[ai],b=SX[bi];
+  // 三合/六合/相冲
+  const sanhe=[[0,4,8],[1,5,9],[2,6,10],[3,7,11]];
+  const liuhe=[[0,1],[2,11],[3,10],[4,9],[5,8],[6,7]];
+  const chong=[[0,6],[1,7],[2,8],[3,9],[4,10],[5,11]];
+  let base=65;
+  sanhe.forEach(g=>{if(g.includes(ai)&&g.includes(bi))base=92});
+  liuhe.forEach(g=>{if(g.includes(ai)&&g.includes(bi))base=88});
+  chong.forEach(g=>{if((g[0]===ai&&g[1]===bi)||(g[1]===ai&&g[0]===bi))base=35});
+  const seed=ai*100+bi+13;
+  const r=seededRand(seed);
+  const score=Math.min(99,Math.max(20,base+Math.floor((r()-.5)*15)));
+  let relation='普通组合';
+  if(base>=90)relation='三合大吉 · 天作之合';
+  else if(base>=85)relation='六合之缘 · 相得益彰';
+  else if(base<40)relation='六冲相克 · 需化解';
+  const el=document.getElementById('matchResult');
+  el.innerHTML=`
+  <div class="match-result">
+    <div class="match-pair">
+      <div class="mp-item"><span class="mp-sym" style="font-size:2rem">🐾</span><span class="mp-name">属${a}</span></div>
+      <span class="match-heart">💫</span>
+      <div class="mp-item"><span class="mp-sym" style="font-size:2rem">🐾</span><span class="mp-name">属${b}</span></div>
+    </div>
+    <div class="match-score"><div class="big">${score}%</div><div class="lbl">${relation}</div></div>
+    ${meter('整体契合',score)}
+    <div class="match-detail">
+      <div class="md-card"><h5>▸ 关系解读</h5><p>属${a}与属${b}${base>=85?'属于'+relation+'的组合，天然具有良好的默契和互补性。在一起会感到轻松愉快，彼此扶持。':base<40?'存在六冲关系，性格和处事方式上容易产生分歧。但冲突也意味着强大的吸引力，关键在于如何化解。':'的组合属于中等缘分。需要双方用心经营，在理解和包容中逐渐建立深厚的默契。'}</p></div>
+      <div class="md-card"><h5>▸ 相处建议</h5><p>${base>=85?'珍惜这份天赐的缘分，多创造共同回忆。你们的组合在事业合作上也有不俗的表现。':base<40?'建议在家中摆放有调和作用的物品，多进行户外活动化解紧张能量。沟通时注意语气和时机。':'培养共同的兴趣爱好，定期为关系制造惊喜。在重要决策上多听取对方意见。'}</p></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{el.querySelectorAll('.meter-fill').forEach(f=>{f.style.width=f.dataset.w+'%'})},100);
+}
+
+// ========== 星座+属相联合配对 ==========
+function queryComboMatch(){
+  const zai=+document.getElementById('comboZA').value, zbi=+document.getElementById('comboZB').value;
+  const sai=+document.getElementById('comboSA').value, sbi=+document.getElementById('comboSB').value;
+  const za=Z[zai],zb=Z[zbi],sa=SX[sai],sb=SX[sbi];
+  const compat={fire:{fire:75,earth:55,air:90,water:50},earth:{fire:55,earth:80,air:60,water:85},air:{fire:90,earth:60,air:70,water:55},water:{fire:50,earth:85,air:55,water:75}};
+  const zBase=compat[za.elem][zb.elem];
+  const seed=zai*1000+zbi*100+sai*10+sbi+42;
+  const r=seededRand(seed);
+  const zLove=Math.min(99,Math.max(30,zBase+Math.floor((r()-.5)*20)));
+  const zFriend=Math.min(99,Math.max(30,zBase+Math.floor((r()-.5)*25)));
+  const sanhe=[[0,4,8],[1,5,9],[2,6,10],[3,7,11]];
+  const liuhe=[[0,1],[2,11],[3,10],[4,9],[5,8],[6,7]];
+  const chong=[[0,6],[1,7],[2,8],[3,9],[4,10],[5,11]];
+  let sxBase=65;
+  sanhe.forEach(g=>{if(g.includes(sai)&&g.includes(sbi))sxBase=92});
+  liuhe.forEach(g=>{if(g.includes(sai)&&g.includes(sbi))sxBase=88});
+  chong.forEach(g=>{if((g[0]===sai&&g[1]===sbi)||(g[1]===sai&&g[0]===sbi))sxBase=35});
+  const sxScore=Math.min(99,Math.max(20,sxBase+Math.floor((r()-.5)*12)));
+  let sxTag='中性相合';
+  if(sxBase>=90)sxTag='三合大吉';else if(sxBase>=85)sxTag='六合相益';else if(sxBase<40)sxTag='六冲相克';
+  const comboLove=Math.round(zLove*.6+sxScore*.4);
+  const comboFriend=Math.round(zFriend*.6+sxScore*.4);
+  const comboWork=Math.min(99,Math.max(30,Math.round(zBase*.5+sxBase*.3+r()*20)));
+  const comboOverall=Math.round(comboLove*.4+comboFriend*.3+comboWork*.3);
+  const harmony=comboOverall>=80?'极高':comboOverall>=65?'良好':comboOverall>=50?'中等':'需磨合';
+  const zComment=zBase>=80?`${za.name}与${zb.name}在星象层面有着天然的吸引力，${za.elemCn}与${zb.elemCn}的交融产生强大的共鸣。`:zBase>=60?`${za.name}与${zb.name}的星座元素存在一定张力，但这种差异也带来了互补的可能。`:`${za.name}与${zb.name}的元素相性较为挑战，需要更多耐心来理解差异。`;
+  const sxComment=sxBase>=85?`属${sa}与属${sb}为${sxTag}，为缘分提供了坚实的传统命理基础。`:sxBase<40?`属${sa}与属${sb}存在${sxTag}，传统命理上有一定冲突，但现代关系更看重沟通与包容。`:`属${sa}与属${sb}的生肖相性平稳，可通过相处逐步加深默契。`;
+  const comboAdvice=comboOverall>=75?`你们的中西命理综合指数达到${harmony}水平。珍惜这段高频共振的缘分，在${r()>.5?'生活细节中多表达关心':'共同目标中携手前进'}，关系将持续升温。`:`综合评估为${harmony}。建议${r()>.5?'多进行深度沟通，了解彼此核心需求':'保持各自独立空间，在尊重差异中寻找平衡'}。${za.ruler}与${zb.ruler}的能量配合属${sa}与属${sb}的生肖磁场，${r()>.5?'在秋冬季节关系运势会有明显提升':'重要节日是增进感情的最佳时机'}。`;
+  const el=document.getElementById('matchResult');
+  el.innerHTML=`
+  <div class="match-result">
+    <div class="match-pair">
+      <div class="mp-item"><span class="mp-sym">${za.sym}</span><span class="mp-name">${za.name} · 属${sa}</span></div>
+      <span class="match-heart">💫</span>
+      <div class="mp-item"><span class="mp-sym">${zb.sym}</span><span class="mp-name">${zb.name} · 属${sb}</span></div>
+    </div>
+    <div class="match-score"><div class="big">${comboOverall}%</div><div class="lbl">COMBINED INDEX · ${harmony}</div></div>
+    <p style="text-align:center;font-size:.72rem;color:rgba(200,216,240,.35);margin:-8px 0 16px;letter-spacing:1px">星座权重 60% + 属相权重 40%</p>
+    ${meter('综合爱情',comboLove)}${meter('综合友谊',comboFriend)}${meter('综合事业',comboWork)}
+    <div style="display:flex;gap:10px;margin:16px 0;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px;padding:10px 14px;border:1px solid rgba(0,238,255,.1);border-radius:4px;background:rgba(0,238,255,.02)">
+        <p style="font-family:'Orbitron',sans-serif;font-size:.62rem;color:var(--cyan);letter-spacing:2px;margin-bottom:6px">ZODIAC · 星座维度 <span style="float:right">${zLove}%</span></p>
+        ${meter('元素相性',zBase)}
+        <p style="font-size:.8rem;line-height:1.7;color:rgba(200,216,240,.65);margin-top:8px">${zComment}</p>
+      </div>
+      <div style="flex:1;min-width:200px;padding:10px 14px;border:1px solid rgba(168,85,247,.1);border-radius:4px;background:rgba(168,85,247,.02)">
+        <p style="font-family:'Orbitron',sans-serif;font-size:.62rem;color:var(--purple);letter-spacing:2px;margin-bottom:6px">SHENGXIAO · 属相维度 <span style="float:right">${sxScore}%</span></p>
+        ${meter('生肖相性',sxScore)}
+        <p style="font-size:.72rem;color:var(--gold);margin:6px 0 4px">⟐ ${sxTag}</p>
+        <p style="font-size:.8rem;line-height:1.7;color:rgba(200,216,240,.65)">${sxComment}</p>
+      </div>
+    </div>
+    <div class="match-detail">
+      <div class="md-card" style="grid-column:1/-1"><h5>▸ 中西合璧 · 综合建议</h5><p>${comboAdvice}</p></div>
+    </div>
+  </div>`;
+  setTimeout(()=>{el.querySelectorAll('.meter-fill').forEach(f=>{f.style.width=f.dataset.w+'%'})},100);
+}
+
+// ========== 星空背景 ==========
+const cv=document.getElementById('stars'),cx=cv.getContext('2d');
+let starPts=[];
+function initStars(){
+  cv.width=innerWidth;cv.height=innerHeight;starPts=[];
+  const n=Math.min(200,Math.floor(cv.width*cv.height/8000));
+  for(let i=0;i<n;i++){
+    starPts.push({x:Math.random()*cv.width,y:Math.random()*cv.height,r:Math.random()*1.4+.3,o:Math.random(),sp:Math.random()*.008+.002,ph:Math.random()*6.28,
+    c:Math.random()>.8?'0,238,255':(Math.random()>.6?'168,85,247':'200,216,240')});
+  }
+}
+function drawStars(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  starPts.forEach(s=>{
+    s.ph+=s.sp;
+    const o=s.o*(.5+Math.sin(s.ph)*.5);
+    cx.beginPath();cx.arc(s.x,s.y,s.r,0,6.28);
+    cx.fillStyle=`rgba(${s.c},${o})`;cx.fill();
+    if(s.r>1.2){cx.beginPath();cx.arc(s.x,s.y,s.r*2.5,0,6.28);cx.fillStyle=`rgba(${s.c},${o*.15})`;cx.fill()}
+  });
+  // 连线
+  for(let i=0;i<starPts.length;i++){
+    for(let j=i+1;j<starPts.length;j++){
+      const dx=starPts[i].x-starPts[j].x,dy=starPts[i].y-starPts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<80){cx.beginPath();cx.moveTo(starPts[i].x,starPts[i].y);cx.lineTo(starPts[j].x,starPts[j].y);cx.strokeStyle=`rgba(0,238,255,${.02*(1-d/80)})`;cx.lineWidth=.3;cx.stroke()}
+    }
+  }
+  requestAnimationFrame(drawStars);
+}
+window.addEventListener('resize',initStars);
+initStars();drawStars();
+
+// ========== 初始化 ==========
+buildCover();
+initMatchSelects();
+</script>
+</body>
+</html>
