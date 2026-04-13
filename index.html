@@ -59,7 +59,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 @keyframes coverPulse{0%,100%{opacity:.45}50%{opacity:.85}}
 
 /* 翻页内容区 */
-.book-inner{position:absolute;inset:0;display:none}
+.book-inner{position:absolute;inset:0;display:none;transform-style:preserve-3d}
 .book-left{position:absolute;left:0;width:50%;height:100%;background:linear-gradient(225deg,#0c1a30,#0a1424);border:1px solid rgba(0,238,255,.1);border-right:none;border-radius:8px 0 0 8px;padding:34px 30px;overflow:hidden}
 .book-spine{position:absolute;left:50%;top:0;width:2px;height:100%;background:linear-gradient(180deg,transparent,var(--cyan),var(--blue),var(--cyan),transparent);opacity:.3;z-index:50}
 .page{position:absolute;width:50%;height:100%;right:0;transform-origin:left center;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.645,.045,.355,1);z-index:1;cursor:pointer}
@@ -156,26 +156,55 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 .match-tabs button{font-size:.78rem;padding:6px 18px;background:transparent;border:1px solid rgba(168,85,247,.15);color:rgba(168,85,247,.6);cursor:pointer;border-radius:2px;transition:all .3s;font-family:'Noto Serif SC',serif}
 .match-tabs button.on{background:rgba(168,85,247,.08);border-color:var(--purple);color:var(--purple)}
 
-/* 页面滚动条 */
-.page-front::-webkit-scrollbar,.page-back::-webkit-scrollbar,.book-left::-webkit-scrollbar{width:3px}
-.page-front::-webkit-scrollbar-thumb,.page-back::-webkit-scrollbar-thumb,.book-left::-webkit-scrollbar-thumb{background:rgba(0,238,255,.15);border-radius:3px}
+/* 隐藏滚动条 */
+.page-front::-webkit-scrollbar,.page-back::-webkit-scrollbar,.book-left::-webkit-scrollbar{display:none}
+.page-front,.page-back,.book-left{scrollbar-width:none;-ms-overflow-style:none}
+
+/* 手机端卡片模式 */
+.mobile-card{display:none}
+.mobile-card .mc-page{background:linear-gradient(160deg,#0c1a30,#0a1424);border:1px solid rgba(0,238,255,.1);border-radius:8px;padding:22px 18px;margin-bottom:8px;position:relative;overflow:hidden}
+.mobile-card .mc-page::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),var(--blue),transparent)}
+.mc-content{animation:mcFade .4s ease}
+@keyframes mcFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.mc-nav{display:flex;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.mc-nav button{font-family:'Orbitron',sans-serif;font-size:.6rem;padding:7px 16px;background:rgba(10,22,40,.6);border:1px solid rgba(0,238,255,.15);color:var(--cyan);cursor:pointer;border-radius:2px;letter-spacing:1px;transition:all .3s}
+.mc-nav button:hover,.mc-nav button:active{border-color:var(--cyan);background:rgba(0,238,255,.06)}
+.mc-nav .pg-info{font-family:'Orbitron',sans-serif;font-size:.58rem;color:rgba(0,238,255,.4);align-self:center}
 
 @media(max-width:960px){
-  .book.closed{width:380px;height:560px}
-  .book.opened{width:760px;height:560px}
-  .cover-grid{grid-template-columns:repeat(3,1fr)}
+  .book.closed{width:380px;height:580px}
+  .book.opened{width:760px;height:580px}
+  .cover-grid{grid-template-columns:repeat(4,1fr)}
 }
 @media(max-width:780px){
-  .book.opened{width:96vw;height:520px}
-  .page-front,.page-back,.book-left{padding:22px 18px}
-}
-@media(max-width:520px){
-  .book.closed{width:90vw;height:500px}
-  .book.opened{width:96vw;height:440px}
-  .page-content{font-size:.85rem;line-height:1.85}
+  .book-wrap{display:none!important}
+  .book-nav{display:none!important}
+  .mobile-card{display:block}
+  .m-cover{background:linear-gradient(145deg,#0d1e38,#08132a 50%,#0a1830);border:1px solid rgba(0,238,255,.15);border-radius:10px;padding:24px 16px;text-align:center;position:relative;overflow:hidden}
+  .m-cover::before{content:'';position:absolute;inset:5px;border:1px solid rgba(0,238,255,.06);border-radius:7px;pointer-events:none}
+  .m-cover .cover-title{font-size:1.3rem;letter-spacing:3px;margin-bottom:4px}
+  .m-cover .cover-sub{font-size:.55rem;letter-spacing:4px;margin-bottom:12px}
+  .m-cover .cover-symbols{font-size:1rem;letter-spacing:3px;margin-bottom:10px}
+  .m-cover .cover-grid{grid-template-columns:repeat(4,1fr);gap:5px}
+  .m-cover .cover-grid .zitem{padding:6px 2px}
+  .m-cover .cover-grid .zitem .sym{font-size:1rem}
+  .m-cover .cover-grid .zitem .zname{font-size:.55rem}
+  .m-cover .cover-grid .zitem .zdate{font-size:.45rem}
+  .m-cover .cover-hint{font-size:.62rem;margin-top:12px}
   .match-detail{grid-template-columns:1fr}
-  .cover-grid{grid-template-columns:repeat(3,1fr)}
-  .cover-title{font-size:1.3rem}
+  .input-group{flex-direction:column;align-items:stretch}
+  .match-row{flex-direction:column;align-items:stretch;gap:10px}
+  .match-row select{width:100%}
+  .match-row .match-vs{display:none}
+  .match-row .btn-main{align-self:center;margin-top:4px}
+  #matchCombo>div:first-child{gap:10px!important}
+  #matchCombo .match-vs{display:none}
+  .hdr{padding:20px 10px 6px}
+  .hdr h1{font-size:1.5rem}
+  .hdr .sub{font-size:.55rem;letter-spacing:5px}
+  .divider{margin:10px auto}
+  .nav{gap:5px;margin-bottom:16px}
+  .nav button{font-size:.6rem;padding:7px 14px;letter-spacing:1px}
 }
 </style>
 </head>
@@ -195,6 +224,7 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
 
   <!-- ===== 星座书 ===== -->
   <div class="panel show" id="panelBook">
+    <!-- 桌面端：翻书 -->
     <div class="book-wrap">
       <div class="book closed" id="book">
         <div class="book-cover" id="bookCover"></div>
@@ -210,6 +240,8 @@ body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse
       <span class="pg-info" id="pgInfo">1 / 12</span>
       <button onclick="bookNext()">NEXT ▷</button>
     </div>
+    <!-- 手机端：日历翻页 -->
+    <div class="mobile-card" id="mobileCard"></div>
   </div>
 
   <!-- ===== 运势查询 ===== -->
@@ -847,8 +879,77 @@ function drawStars(){
 window.addEventListener('resize',initStars);
 initStars();drawStars();
 
+// ========== 手机端日历翻页 ==========
+let mcPage=-1; // -1=封面
+function buildMobile(){
+  const el=document.getElementById('mobileCard');
+  if(!el)return;
+  showMobileCover();
+}
+function showMobileCover(){
+  mcPage=-1;
+  const el=document.getElementById('mobileCard');
+  let grid='';
+  Z.forEach((z,i)=>{
+    grid+=`<div class="zitem" onclick="mcGoTo(${i})"><span class="sym">${z.sym}</span><span class="zname">${z.name}</span><span class="zdate">${z.date}</span></div>`;
+  });
+  el.innerHTML=`
+    <div class="m-cover">
+      <div class="cover-title">ASTRAL CODEX</div>
+      <div class="cover-sub">星 际 命 典</div>
+      <div class="cover-symbols">♈♉♊♋♌♍♎♏♐♑♒♓</div>
+      <div class="cover-grid">${grid}</div>
+      <p class="cover-hint">✦ 点击星座查看详情 ✦</p>
+    </div>`;
+}
+function mcGoTo(idx){
+  mcPage=idx;
+  mcRender();
+}
+function mcRender(){
+  const z=Z[mcPage];
+  const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[z.elem];
+  const el=document.getElementById('mobileCard');
+  el.innerHTML=`
+    <div class="mc-content">
+      <div class="mc-page">
+        <div class="page-title" style="color:${ec}">${z.sym} ${z.name} <span style="opacity:.4;font-size:.68rem">${z.en}</span></div>
+        <div class="page-content">
+          <div style="font-size:2rem;text-align:center;margin:6px 0;filter:drop-shadow(0 0 8px ${ec}40)">${z.sym}</div>
+          <p style="text-align:center;font-size:.75rem;color:${ec};margin-bottom:8px;letter-spacing:1px">${z.date} · ${z.elemCn} · 守护星：${z.ruler}</p>
+          <p style="font-size:.85rem;line-height:1.85">${z.desc}</p>
+          <div style="margin-top:8px">${z.trait.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="mc-page">
+        <div class="page-title" style="color:${ec}">${z.sym} 详解</div>
+        <div class="page-content">
+          <b>💕 爱情</b><p style="margin:4px 0 10px;padding-left:10px;border-left:2px solid ${ec}30;font-size:.83rem;line-height:1.8">${z.love}</p>
+          <b>💼 事业</b><p style="margin:4px 0 10px;padding-left:10px;border-left:2px solid ${ec}30;font-size:.83rem;line-height:1.8">${z.career}</p>
+          <b>🍀 幸运物</b>
+          <div style="margin-top:4px;display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:.78rem">
+            <p>数字：<span style="color:${ec}">${z.lucky.num}</span></p>
+            <p>颜色：<span style="color:${ec}">${z.lucky.color}</span></p>
+            <p>宝石：<span style="color:${ec}">${z.lucky.stone}</span></p>
+            <p>幸运日：<span style="color:${ec}">${z.lucky.day}</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mc-nav">
+      <button onclick="showMobileCover()">◁ 总览</button>
+      <button onclick="mcPrev()" ${mcPage<=0?'disabled style="opacity:.3"':''}>◁ 上一个</button>
+      <span class="pg-info">${mcPage+1} / 12</span>
+      <button onclick="mcNext()" ${mcPage>=11?'disabled style="opacity:.3"':''}>下一个 ▷</button>
+    </div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function mcNext(){if(mcPage<11){mcPage++;mcRender()}}
+function mcPrev(){if(mcPage>0){mcPage--;mcRender()}}
+
 // ========== 初始化 ==========
 buildCover();
+buildMobile();
 initMatchSelects();
 </script>
 </body>
