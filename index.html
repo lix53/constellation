@@ -389,7 +389,7 @@ function showPanel(id){
 
 // ========== 星座书 ==========
 let curPage=0;
-const totalPages=12;
+const totalPages=11; // 11次翻页（12个星座）
 
 function buildCover(){
   const cover=document.getElementById('bookCover');
@@ -439,24 +439,18 @@ function backToCover(){
 function buildPages(){
   const container=document.getElementById('bookInner');
   container.querySelectorAll('.page').forEach(p=>p.remove());
-  Z.forEach((z,i)=>{
+  // 11个page：每个page的front=当前星座详解，back=下一个星座概览
+  for(let i=0;i<11;i++){
+    const z=Z[i]; // 当前星座（详解放右页front）
+    const nz=Z[i+1]; // 下一个星座（概览放翻过去后的back）
     const page=document.createElement('div');
     page.className='page';
-    page.style.zIndex=totalPages-i;
+    page.style.zIndex=11-i;
     page.dataset.idx=i;
     const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[z.elem];
+    const nec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[nz.elem];
     page.innerHTML=`
       <div class="page-front">
-        <div class="page-title" style="color:${ec}">${z.sym} ${z.name} <span style="opacity:.4;font-size:.72rem">${z.en}</span></div>
-        <div class="page-content">
-          <div style="font-size:3rem;text-align:center;margin:14px 0;filter:drop-shadow(0 0 14px ${ec}50)">${z.sym}</div>
-          <p style="text-align:center;font-size:.82rem;color:${ec};margin-bottom:14px;letter-spacing:2px">${z.date} · ${z.elemCn} · 守护星：${z.ruler}</p>
-          <p style="font-size:.95rem;line-height:2.1">${z.desc}</p>
-          <div style="margin-top:14px">${z.trait.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
-          <p style="margin-top:18px;font-size:.8rem;color:rgba(200,216,240,.4);text-align:center">▸ 点击翻页查看详情 →</p>
-        </div>
-      </div>
-      <div class="page-back">
         <div class="page-title" style="color:${ec}">${z.sym} ${z.name} · 详解</div>
         <div class="page-content">
           <b style="font-size:.95rem">💕 爱情</b>
@@ -471,48 +465,63 @@ function buildPages(){
             <p style="font-size:.9rem">幸运日：<span style="color:${ec}">${z.lucky.day}</span></p>
           </div>
         </div>
+      </div>
+      <div class="page-back">
+        <div class="page-title" style="color:${nec}">${nz.sym} ${nz.name} <span style="opacity:.4;font-size:.72rem">${nz.en}</span></div>
+        <div class="page-content">
+          <div style="font-size:3rem;text-align:center;margin:14px 0;filter:drop-shadow(0 0 14px ${nec}50)">${nz.sym}</div>
+          <p style="text-align:center;font-size:.82rem;color:${nec};margin-bottom:14px;letter-spacing:2px">${nz.date} · ${nz.elemCn} · 守护星：${nz.ruler}</p>
+          <p style="font-size:.95rem;line-height:2.1">${nz.desc}</p>
+          <div style="margin-top:14px">${nz.trait.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        </div>
       </div>`;
     page.addEventListener('click',()=>{
       if(!page.classList.contains('flipped')&&parseInt(page.dataset.idx)===curPage)bookNext();
     });
     container.appendChild(page);
-  });
+  }
+  // 最后一个星座的详解：单独一个不可翻的page
+  const lz=Z[11];
+  const lec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[lz.elem];
+  const lastPage=document.createElement('div');
+  lastPage.className='page';
+  lastPage.style.zIndex=0;
+  lastPage.dataset.idx='11';
+  lastPage.innerHTML=`
+    <div class="page-front">
+      <div class="page-title" style="color:${lec}">${lz.sym} ${lz.name} · 详解</div>
+      <div class="page-content">
+        <b style="font-size:.95rem">💕 爱情</b>
+        <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${lec}30;font-size:.95rem;line-height:2">${lz.love}</p>
+        <b style="font-size:.95rem">💼 事业</b>
+        <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${lec}30;font-size:.95rem;line-height:2">${lz.career}</p>
+        <b style="font-size:.95rem">🍀 幸运物</b>
+        <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
+          <p style="font-size:.9rem">幸运数字：<span style="color:${lec}">${lz.lucky.num}</span></p>
+          <p style="font-size:.9rem">幸运颜色：<span style="color:${lec}">${lz.lucky.color}</span></p>
+          <p style="font-size:.9rem">守护宝石：<span style="color:${lec}">${lz.lucky.stone}</span></p>
+          <p style="font-size:.9rem">幸运日：<span style="color:${lec}">${lz.lucky.day}</span></p>
+        </div>
+      </div>
+    </div>
+    <div class="page-back"></div>`;
+  container.appendChild(lastPage);
   updateBookLeft();
   updatePageInfo();
 }
 
 function updateBookLeft(){
   const left=document.getElementById('bookLeft');
-  if(curPage===0){
-    const z=Z[0];
-    const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[z.elem];
-    left.innerHTML=`
-      <div class="page-title" style="color:${ec};text-align:center">✦ ${z.sym} ${z.name}</div>
-      <div class="page-content" style="text-align:center">
-        <p style="font-size:3.5rem;margin:20px 0;filter:drop-shadow(0 0 14px ${ec}40)">${z.sym}</p>
-        <p style="font-size:.85rem;color:${ec};margin-bottom:14px;letter-spacing:2px">${z.date} · ${z.elemCn}</p>
-        <p style="font-size:.92rem;line-height:2;text-align:left">${z.desc}</p>
-        <p style="margin-top:20px;font-size:.78rem;color:rgba(200,216,240,.25)">这是第一页 · 向右翻页浏览更多星座</p>
-      </div>`;
-  }else{
-    const pz=Z[curPage-1];
-    const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[pz.elem];
-    left.innerHTML=`
-      <div class="page-title" style="color:${ec}">${pz.sym} ${pz.name} · 详解</div>
-      <div class="page-content">
-        <b style="font-size:.95rem">💕 爱情</b>
-        <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${ec}30;font-size:.95rem;line-height:2">${pz.love}</p>
-        <b style="font-size:.95rem">💼 事业</b>
-        <p style="margin:6px 0 16px;padding-left:14px;border-left:2px solid ${ec}30;font-size:.95rem;line-height:2">${pz.career}</p>
-        <b style="font-size:.95rem">🍀 幸运物</b>
-        <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
-          <p style="font-size:.9rem">幸运数字：<span style="color:${ec}">${pz.lucky.num}</span></p>
-          <p style="font-size:.9rem">幸运颜色：<span style="color:${ec}">${pz.lucky.color}</span></p>
-          <p style="font-size:.9rem">守护宝石：<span style="color:${ec}">${pz.lucky.stone}</span></p>
-          <p style="font-size:.9rem">幸运日：<span style="color:${ec}">${pz.lucky.day}</span></p>
-        </div>
-      </div>`;
-  }
+  const z=Z[curPage];
+  const ec={fire:'#ff6b35',earth:'#8b9a46',air:'#5cc8ff',water:'#7c6cf0'}[z.elem];
+  left.innerHTML=`
+    <div class="page-title" style="color:${ec}">${z.sym} ${z.name} <span style="opacity:.4;font-size:.72rem">${z.en}</span></div>
+    <div class="page-content">
+      <div style="font-size:3rem;text-align:center;margin:14px 0;filter:drop-shadow(0 0 14px ${ec}50)">${z.sym}</div>
+      <p style="text-align:center;font-size:.82rem;color:${ec};margin-bottom:14px;letter-spacing:2px">${z.date} · ${z.elemCn} · 守护星：${z.ruler}</p>
+      <p style="font-size:.95rem;line-height:2.1">${z.desc}</p>
+      <div style="margin-top:14px">${z.trait.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    </div>`;
 }
 function bookNext(){
   if(curPage>=totalPages)return;
@@ -544,7 +553,7 @@ function jumpToPage(target){
     const go=()=>{if(curPage>target){curPage--;const pg=pages[curPage];pg.style.zIndex=totalPages+1;pg.classList.remove('flipped');setTimeout(()=>{pg.style.zIndex=totalPages-curPage},1050);updateBookLeft();updatePageInfo();setTimeout(go,150)}};go();
   }
 }
-function updatePageInfo(){document.getElementById('pgInfo').textContent=`${curPage+1} / ${totalPages+1}`}
+function updatePageInfo(){document.getElementById('pgInfo').textContent=`${Z[curPage].name} · ${curPage+1} / 12`}
 
 // ========== 运势查询 ==========
 function getZodiacByDate(m,d){
