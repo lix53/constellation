@@ -527,23 +527,23 @@ function bookNext(){
   if(curPage>=totalPages)return;
   const pages=document.querySelectorAll('.page');
   pages[curPage].classList.add('flipped');
-  pages[curPage].style.zIndex=curPage+1; // 翻过的页：越晚翻的越靠上
+  pages[curPage].style.zIndex=curPage+1;
   curPage++;
-  updateBookLeft();
   updatePageInfo();
+  // 等翻页动画完成后再更新左页
+  setTimeout(()=>updateBookLeft(),1000);
 }
 function bookPrev(){
   if(curPage<=0)return;
+  // 先更新左页为上一个星座（动画还没开始，左页被翻回来的page遮住看不到）
   curPage--;
-  const pages=document.querySelectorAll('.page');
-  const pg=pages[curPage];
-  // 先提高z-index让回翻动画在最上层可见
-  pg.style.zIndex=totalPages+1;
-  pg.classList.remove('flipped');
-  // 动画完成后恢复正常z-index
-  setTimeout(()=>{pg.style.zIndex=totalPages-curPage},1050);
   updateBookLeft();
   updatePageInfo();
+  const pages=document.querySelectorAll('.page');
+  const pg=pages[curPage];
+  pg.style.zIndex=totalPages+1;
+  pg.classList.remove('flipped');
+  setTimeout(()=>{pg.style.zIndex=totalPages-curPage},1050);
 }
 function jumpToPage(target){
   const pages=document.querySelectorAll('.page');
